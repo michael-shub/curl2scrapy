@@ -24,9 +24,7 @@
                 </div>
             </div>
         </div>
-        <div class="row">
-            <button type="button" class="btn btn-primary" id="btn">Translate</button>
-        </div>
+            <button type="button" class="btn btn-primary" id="btn" onclick="translate()">Translate</button>
     </div>
 </body>
 <script type="text/javascript">
@@ -89,7 +87,7 @@
                     + `url = '[[url]]'\n`
                     + (headersText ? 'headers = [[headers]]\n' : '')
                     + (cookieText ? 'cookies = [[cookies]]\n' : '')
-                    + (body ? 'body = [[body]]\n' : '')
+                    + (body ? `body = '[[body]]'\n` : '')
 
                     + `request = Request(\n`
                     + `url=url,\n`
