@@ -84,18 +84,18 @@
         let headersText = JSON.stringify(headers, null, 4);
         let result = `from scrapy import Request\n`
                     + `\n`
-                    + `url = '[[url]]'\n`
+                    + `url = '[[url]]'\n\n`
                     + (headersText ? 'headers = [[headers]]\n' : '')
                     + (cookieText ? 'cookies = [[cookies]]\n' : '')
                     + (body ? `body = '[[body]]'\n` : '')
 
-                    + `request = Request(\n`
-                    + `url=url,\n`
-                    + `method='[[method]]',\n`
-                    + (cookieText ? 'cookies=cookies,\n' : '')
-                    + (headersText ? 'headers=headers,\n' : '')
-                    + (body ? 'body=body,\n' : '')
-                    + `)\n`
+                    + `\nrequest = Request(\n`
+                    + `    url=url,\n`
+                    + `    method='[[method]]',\n`
+                    + (cookieText ? '    cookies=cookies,\n' : '')
+                    + (headersText ? '    headers=headers,\n' : '')
+                    + (body ? '    body=body,\n' : '')
+                    + `)\n\n`
                     + `fetch(request)`
 
         result = result.replace('[[url]]', url)
