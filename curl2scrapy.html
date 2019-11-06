@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <title>Curl to Scrapy</title>
+</head>
+<body>
+    <div class="container">
+        <h3>Curl to Scrapy traslator</h3>
+        <div class="row">
+            <div class="col-md">
+                <div class="form-group">
+                    <label for="curl">Curl source:</label>
+                    <textarea id="curl" class="form-control" rows="25">Ololo</textarea>
+                </div>
+            </div>
+            <div class="col-md">
+                <div class="form-group">
+                    <label for="scrapy">Scrapy code:</label>
+                    <textarea id="scrapy" class="form-control" rows="25">Trololo</textarea>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <button type="button" class="btn btn-primary" id="btn">Translate</button>
+        </div>
+    </div>
+</body>
+<script type="text/javascript">
+    var curlField = $('#curl');
+    var scrapyField = $('#scrapy');
+
+    
+    var cookiesRegex = ``
+
+    function getMethod(str){
+        let methodRegex = /-X (\w+)/;
+        let methodMatch = str.match(methodRegex) ? str.match(methodRegex)[1] : null
+
+        let postRegex = /\s--data \S/
+        let postMatch = str.match(postRegex) ? 'POST' : null
+        return methodMatch || postMatch || 'GET'
+    };
+
+    // Create header from string.
+    function extractHeader(str){
+        return str.slice(4,-1).split(/: (.+)/)
+    }
+
+    // Create headers object and stringify it.
+    function getHeaders(str){
+        let headersRegex = /-H '(.+?)'/g;
+        return str.match(headersRegex).slice(1).map(extractHeader).reduce(
+            function(acc, v){acc[v[0]] = v[1]; return acc}, {});
+    };
+
+    // Extracting URL from curl data.
+    function getUrl(text){
+        let urlRegex = /curl '(.+?)'/;
+        return text.match(urlRegex)[1]
+    };
+
+    // Extracting cookies from headers
+    function getCookies(str){
+        if (str == null){return null};
+        return JSON.stringify(str.split(';').map(function(x){return x.split(/=(.+)/)}).reduce(function(acc, v){acc[v[0]] = v[1]; return acc}, {}), null, 4)
+    }
+
+    function getBody(str){
+        let bodyRegex = /--data '(.+?)'/
+        return str.match(bodyRegex) ? str.match(bodyRegex)[1] : null
+    }
+
+    // All together.
+    function translate(text){
+        let curlText = curlField.val();
+        let url = getUrl(curlText);
+        let method = getMethod(curlText);
+        let body = getBody(curlText);
+        let headers = getHeaders(curlText);
+        let cookieText = getCookies(headers.Cookie || null);
+        delete headers.Cookie;
+        let headersText = JSON.stringify(headers, null, 4);
+        let result = `from scrapy import Request\n`
+                    + `\n`
+                    + `url = '[[url]]'\n`
+                    + (headersText ? 'headers = [[headers]]\n' : '')
+                    + (cookieText ? 'cookies = [[cookies]]\n' : '')
+                    + (body ? 'body = [[body]]\n' : '')
+
+                    + `request = Request(\n`
+                    + `url=url,\n`
+                    + `method='[[method]]',\n`
+                    + (cookieText ? 'cookies=cookies,\n' : '')
+                    + (headersText ? 'headers=headers,\n' : '')
+                    + (body ? 'body=body,\n' : '')
+                    + `)\n`
+                    + `fetch(request)`
+
+        result = result.replace('[[url]]', url)
+        .replace('[[headers]]', headersText)
+        .replace('[[cookies]]', cookieText)
+        .replace('[[method]]', method)
+        .replace('[[body]]', body)
+        scrapyField.val(result);
+        return result;
+    };
+</script>
+</html>
