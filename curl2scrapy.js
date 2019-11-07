@@ -1,8 +1,11 @@
+var curlField = $('#curl');
+var scrapyField = $('#scrapy');
+
 function getMethod(str){
     let methodRegex = /-X (\w+)/;
     let methodMatch = str.match(methodRegex) ? str.match(methodRegex)[1] : null
 
-    let postRegex = /\s--data \S/
+    let postRegex = /\s(--data|--data-binary) \S/
     let postMatch = str.match(postRegex) ? 'POST' : null
     return methodMatch || postMatch || 'GET'
 };
@@ -32,16 +35,15 @@ function getCookies(str){
 }
 
 function getBody(str){
-    let bodyRegex = /--data '(.+?)'/
-    return str.match(bodyRegex) ? str.match(bodyRegex)[1] : null
+    let bodyRegex1 = /--data-binary '(.+?)'/
+    let bodyRegex2 = /--data '(.+?)'/
+    let match = str.match(bodyRegex1)  || str.match(bodyRegex2) 
+    return match ? match[1] : null
 }
 
 // All together.
 function curl2scrapy(){
-    var curlField = $('#curl');
-    var scrapyField = $('#scrapy');
     try {
-
         let curlText = curlField.val();
         let url = getUrl(curlText);
         let method = getMethod(curlText);
@@ -78,3 +80,11 @@ function curl2scrapy(){
         scrapyField.val('Something went wrong...');
     }
 };
+
+curlField.keydown(function (e) {
+
+  if (e.ctrlKey && e.keyCode == 13) {
+    // Ctrl-Enter pressed
+    curl2scrapy();
+  }
+});
