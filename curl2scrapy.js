@@ -37,7 +37,7 @@ function getBody(str){
 }
 
 // All together.
-function translate(){
+function curl2scrapy(){
     var curlField = $('#curl');
     var scrapyField = $('#scrapy');
     try {
