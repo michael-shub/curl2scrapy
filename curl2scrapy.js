@@ -53,10 +53,10 @@ function curl2scrapy(){
         let headersText = JSON.stringify(headers, null, 4);
         let result = `from scrapy import Request\n`
                     + `\n`
-                    + `url = '[[url]]'\n\n`
-                    + (headersText ? 'headers = [[headers]]\n' : '')
-                    + (cookieText ? 'cookies = [[cookies]]\n' : '')
-                    + (body ? `body = '[[body]]'\n` : '')
+                    + `url = '[[url]]'\n`
+                    + (headersText ? '\nheaders = [[headers]]\n' : '')
+                    + (cookieText ? '\ncookies = [[cookies]]\n' : '')
+                    + (body ? `\nbody = '[[body]]'\n` : '')
 
                     + `\nrequest = Request(\n`
                     + `    url=url,\n`
