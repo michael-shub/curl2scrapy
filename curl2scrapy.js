@@ -47,8 +47,9 @@ function curl2scrapy(){
         let method = getMethod(curlText);
         let body = getBody(curlText);
         let headers = getHeaders(curlText);
-        let cookieText = getCookies(headers.Cookie || null);
+        let cookieText = getCookies(headers.Cookie || headers.cookie || null);
         delete headers.Cookie;
+        delete headers.cookie;
         let headersText = JSON.stringify(headers, null, 4);
         let result = `from scrapy import Request\n`
                     + `\n`
