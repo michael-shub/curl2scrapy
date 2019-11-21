@@ -63,7 +63,7 @@ function curl2scrapy(){
                     + `\nrequest = Request(\n`
                     + `    url=url,\n`
                     + `    method='[[method]]',\n`
-                    + `    dont_filter=True,`
+                    + `    dont_filter=True,\n`
                     + (cookieText ? '    cookies=cookies,\n' : '')
                     + (headersText ? '    headers=headers,\n' : '')
                     + (body ? '    body=body,\n' : '')
