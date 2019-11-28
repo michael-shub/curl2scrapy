@@ -18,7 +18,7 @@ function extractHeader(str){
 // Create headers object and stringify it.
 function getHeaders(str){
     let headersRegex = /-H '(.+?)'/g;
-    return str.match(headersRegex).slice(1).map(extractHeader).reduce(
+    return str.match(headersRegex).map(extractHeader).reduce(
         function(acc, v){acc[v[0]] = v[1]; return acc}, {});
 };
 
