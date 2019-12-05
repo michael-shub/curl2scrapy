@@ -19,13 +19,14 @@ function extractHeader(str){
 // Create headers object and stringify it.
 function getHeaders(str){
     let headersRegex = /-H '(.+?)'/g;
-    return str.match(headersRegex).map(extractHeader).reduce(
+    let headersMatch = str.match(headersRegex) ? str.match(headersRegex) : []
+    return headersMatch.map(extractHeader).reduce(
         function(acc, v){acc[v[0]] = v[1]; return acc}, {});
 };
 
 // Extracting URL from curl data.
 function getUrl(text){
-    let urlRegex = /curl '(.+?)'/;
+    let urlRegex = /curl\s'?(.+?)'?\s/;
     return text.match(urlRegex)[1]
 };
 
@@ -52,14 +53,16 @@ function curl2scrapy(curlText){
         let cookieText = getCookies(headers.Cookie || headers.cookie || null);
         delete headers.Cookie;
         delete headers.cookie;
-        let headersText = JSON.stringify(headers, null, 4);
+        let headersText = $.isEmptyObject(headers) ? null : JSON.stringify(headers, null, 4);
+        console.log(headersText);
+        console.log(headers);
+        console.log(headers === {});
         let result = `from scrapy import Request\n`
                     + `\n`
                     + `url = '[[url]]'\n`
                     + (headersText ? '\nheaders = [[headers]]\n' : '')
                     + (cookieText ? '\ncookies = [[cookies]]\n' : '')
                     + (body ? `\nbody = '[[body]]'\n` : '')
-
                     + `\nrequest = Request(\n`
                     + `    url=url,\n`
                     + `    method='[[method]]',\n`
