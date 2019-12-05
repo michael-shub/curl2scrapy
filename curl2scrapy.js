@@ -26,7 +26,7 @@ function getHeaders(str){
 
 // Extracting URL from curl data.
 function getUrl(text){
-    let urlRegex = /curl\s'?(.+?)'?\s/;
+    let urlRegex = /curl\s'?(\S+?)'?\s/;
     return text.match(urlRegex)[1]
 };
 
