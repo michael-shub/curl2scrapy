@@ -1,5 +1,6 @@
 var curlField = $('#curl');
 var scrapyField = $('#scrapy');
+var btn = $('#btn');
 
 function getMethod(str){
     let methodRegex = /-X (\w+)/;
@@ -37,14 +38,13 @@ function getCookies(str){
 function getBody(str){
     let bodyRegex1 = /--data-binary '(.+?)'/
     let bodyRegex2 = /--data '(.+?)'/
-    let match = str.match(bodyRegex1)  || str.match(bodyRegex2) 
+    let match = str.match(bodyRegex1) || str.match(bodyRegex2) 
     return match ? match[1] : null
 }
 
 // All together.
-function curl2scrapy(){
+function curl2scrapy(curlText){
     try {
-        let curlText = curlField.val();
         let url = getUrl(curlText);
         let method = getMethod(curlText);
         let body = getBody(curlText);
@@ -82,10 +82,28 @@ function curl2scrapy(){
     }
 };
 
-curlField.keydown(function (e) {
+// Translate on paste function + callback
+// Many thanks to https://stackoverflow.com/questions/2176861/javascript-get-clipboard-data-on-paste-event-cross-browser
+function handlePaste (e) {
+    var clipboardData, pastedData;
 
+    // Get pasted data via clipboard API
+    clipboardData = e.clipboardData || window.clipboardData;
+    pastedData = clipboardData.getData('Text');
+
+    // Do whatever with pasteddata
+    curl2scrapy(pastedData);
+}
+document.getElementById('curl').addEventListener('paste', handlePaste);
+
+// // Ctrl-Enter pressed
+curlField.keydown(function(e) {
   if (e.ctrlKey && e.keyCode == 13) {
-    // Ctrl-Enter pressed
-    curl2scrapy();
+    curl2scrapy(curlField.val());
   }
 });
+
+// Button click
+btn.click(function(e){
+    curl2scrapy(curlField.val());
+})
