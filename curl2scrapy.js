@@ -6,7 +6,7 @@ function getMethod(str){
     let methodRegex = /-X (\w+)/;
     let methodMatch = str.match(methodRegex) ? str.match(methodRegex)[1] : null
 
-    let postRegex = /\s(--data|--data-binary) \S/
+    let postRegex = /\s(--data(-binary|-raw)?) \S/
     let postMatch = str.match(postRegex) ? 'POST' : null
     return methodMatch || postMatch || 'GET'
 };
@@ -37,10 +37,9 @@ function getCookies(str){
 }
 
 function getBody(str){
-    let bodyRegex1 = /--data-binary '(.+?)'/
-    let bodyRegex2 = /--data '(.+?)'/
-    let match = str.match(bodyRegex1) || str.match(bodyRegex2) 
-    return match ? match[1] : null
+    let bodyRegex = /--data(\-raw|\-binary)? '(.+?)'/
+    let match = str.match(bodyRegex)
+    return match ? match[2] : null
 }
 
 // All together.
@@ -54,9 +53,9 @@ function curl2scrapy(curlText){
         delete headers.Cookie;
         delete headers.cookie;
         let headersText = $.isEmptyObject(headers) ? null : JSON.stringify(headers, null, 4);
-        console.log(headersText);
-        console.log(headers);
-        console.log(headers === {});
+        // console.log(headersText);
+        // console.log(headers);
+        // console.log(headers === {});
         let result = `from scrapy import Request\n`
                     + `\n`
                     + `url = '[[url]]'\n`
