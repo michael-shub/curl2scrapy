@@ -6,7 +6,7 @@ function getMethod(str){
     let methodRegex = /-X (\w+)/;
     let methodMatch = str.match(methodRegex) ? str.match(methodRegex)[1] : null
 
-    let postRegex = /\s(--data(-binary|-raw)?) \S/
+    let postRegex = /\s(--data|--data-binary) \S/
     let postMatch = str.match(postRegex) ? 'POST' : null
     return methodMatch || postMatch || 'GET'
 };
@@ -37,46 +37,61 @@ function getCookies(str){
 }
 
 function getBody(str){
-    let bodyRegex = /--data(\-raw|\-binary)? '(.+?)'/
-    let match = str.match(bodyRegex)
-    return match ? match[2] : null
+    let bodyRegex1 = /--data-binary '(.+?)'/
+    let bodyRegex2 = /--data '(.+?)'/
+    let match = str.match(bodyRegex1) || str.match(bodyRegex2) 
+    return match ? match[1] : null
 }
+
+
+function getCurlObject(curlText){
+    let url = getUrl(curlText);
+    let method = getMethod(curlText);
+    let body = getBody(curlText);
+    let headers = getHeaders(curlText);
+    let cookies = headers.Cookie || headers.cookie || null;
+    delete headers.Cookie;
+    delete headers.cookie;
+
+    return {
+        "url": url,
+        "method": method,
+        "body": body,
+        "headers": headers,
+        "cookies": cookies
+    }
+};
+
 
 // All together.
 function curl2scrapy(curlText){
     try {
-        let url = getUrl(curlText);
-        let method = getMethod(curlText);
-        let body = getBody(curlText);
-        let headers = getHeaders(curlText);
-        let cookieText = getCookies(headers.Cookie || headers.cookie || null);
-        delete headers.Cookie;
-        delete headers.cookie;
-        let headersText = $.isEmptyObject(headers) ? null : JSON.stringify(headers, null, 4);
-        // console.log(headersText);
-        // console.log(headers);
-        // console.log(headers === {});
+        let curlObject = getCurlObject(curlText);
+
+        let cookieText = getCookies(curlObject.cookies);
+        let headersText = $.isEmptyObject(curlObject.headers) ? null : JSON.stringify(curlObject.headers, null, 4);
+
         let result = `from scrapy import Request\n`
                     + `\n`
                     + `url = '[[url]]'\n`
                     + (headersText ? '\nheaders = [[headers]]\n' : '')
                     + (cookieText ? '\ncookies = [[cookies]]\n' : '')
-                    + (body ? `\nbody = '[[body]]'\n` : '')
+                    + (curlObject.body ? `\nbody = '[[body]]'\n` : '')
                     + `\nrequest = Request(\n`
                     + `    url=url,\n`
                     + `    method='[[method]]',\n`
                     + `    dont_filter=True,\n`
                     + (cookieText ? '    cookies=cookies,\n' : '')
                     + (headersText ? '    headers=headers,\n' : '')
-                    + (body ? '    body=body,\n' : '')
+                    + (curlObject.body ? '    body=body,\n' : '')
                     + `)\n\n`
                     + `fetch(request)`
 
-        result = result.replace('[[url]]', url)
+        result = result.replace('[[url]]', curlObject.url)
         .replace('[[headers]]', headersText)
         .replace('[[cookies]]', cookieText)
-        .replace('[[method]]', method)
-        .replace('[[body]]', body)
+        .replace('[[method]]', curlObject.method)
+        .replace('[[body]]', curlObject.body)
         scrapyField.val(result);
         }
     catch {
