@@ -16,6 +16,14 @@ function extractHeader(str){
     return str.slice(4,-1).split(/: (.+)/)
 }
 
+// Removing extra flags
+function cleanFlags(str){
+    let flags = ["-L", "--location"]
+    let regexString = "\\s*" + flags.join("|") + "\\s*"
+    let regex = new RegExp(regexString, "g")
+    return str.replace(regex, '')
+}
+
 // Create headers object and stringify it.
 function getHeaders(str){
     let headersRegex = /-H '(.+?)'/g;
@@ -44,6 +52,7 @@ function getBody(str){
 
 
 function getCurlObject(curlText){
+    curlText = cleanFlags(curlText)
     let url = getUrl(curlText);
     let method = getMethod(curlText);
     let body = getBody(curlText);
