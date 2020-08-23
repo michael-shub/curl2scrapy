@@ -2,39 +2,47 @@ var curlField = $('#curl');
 var scrapyField = $('#scrapy');
 var btn = $('#btn');
 
+
 function getMethod(str){
     let methodRegex = /-X (\w+)/;
     let methodMatch = str.match(methodRegex) ? str.match(methodRegex)[1] : null
 
-    let postRegex = /\s--data(-binary|-raw)? \S/
+    let postRegex = /\s--data(-binary|-raw|-urlencode)? \S/
     let postMatch = str.match(postRegex) ? 'POST' : null
     return methodMatch || postMatch || 'GET'
 };
 
 // Create header from string.
 function extractHeader(str){
-    return str.slice(4,-1).split(/: (.+)/)
+    return str.split(/: (.+)/)
 }
 
 // Removing extra flags
 function cleanFlags(str){
-    let flags = ["-L", "--location"]
-    let regexString = "\\s*" + flags.join("|") + "\\s*"
+    let flags = ["-L", "--location", "--request"]
+    let regexString = "(" + flags.join("|") + ")\\s*"
     let regex = new RegExp(regexString, "g")
     return str.replace(regex, '')
 }
 
 // Create headers object and stringify it.
 function getHeaders(str){
-    let headersRegex = /-H '(.+?)'/g;
-    let headersMatch = str.match(headersRegex) ? str.match(headersRegex) : []
+    let headersRegex = /(-H|--header) '(.+?)'/g;
+    let matches = [];
+    let match = headersRegex.exec(str);
+    while (match != null) {
+        matches.push(match[2]);
+        match = headersRegex.exec(str)
+    }
+    let headersMatch = matches ? matches : []
+
     return headersMatch.map(extractHeader).reduce(
         function(acc, v){acc[v[0]] = v[1]; return acc}, {});
 };
 
 // Extracting URL from curl data.
 function getUrl(text){
-    let urlRegex = /curl\s'?(\S+?)'?\s/;
+    let urlRegex = /((http|https|wss).+?)'?(\s|$)/;
     return text.match(urlRegex)[1]
 };
 
@@ -45,7 +53,7 @@ function getCookies(str){
 }
 
 function getBody(str){
-    let bodyRegex = /--data(-binary|-raw)? '(.+?)'/
+    let bodyRegex = /--data(-binary|-raw|-urlencode)? '(.+?)'/
     let match = str.match(bodyRegex) 
     return match ? match[2] : null
 }
@@ -102,8 +110,9 @@ function curl2scrapy(curlText){
         .replace('[[body]]', curlObject.body)
         scrapyField.val(result);
         }
-    catch {
-        scrapyField.val('Something went wrong...');
+    catch (e) {
+        // scrapyField.val('Something went wrong...');
+        scrapyField.val(e);
     }
 };
 
