@@ -111,8 +111,7 @@ function curl2scrapy(curlText){
         scrapyField.val(result);
         }
     catch (e) {
-        // scrapyField.val('Something went wrong...');
-        scrapyField.val(e);
+        scrapyField.val('Something went wrong...' + '\n' + e);
     }
 };
 
