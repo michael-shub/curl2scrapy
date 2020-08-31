@@ -37,7 +37,7 @@ function getHeaders(str){
     let headersMatch = matches ? matches : []
 
     return headersMatch.map(extractHeader).reduce(
-        function(acc, v){acc[v[0]] = v[1]; return acc}, {});
+        function(acc, v){acc[v[0].trim()] = v[1]; return acc}, {});
 };
 
 // Extracting URL from curl data.
