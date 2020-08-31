@@ -49,8 +49,15 @@ function getUrl(text){
 // Extracting cookies from headers
 function getCookies(str){
     if (str == null){return null};
-    return JSON.stringify(str.split(';').map(function(x){return x.split(/=(.+)/)}).reduce(function(acc, v){acc[v[0]] = v[1]; return acc}, {}), null, 4)
-}
+        return JSON.stringify(
+            str.split(';').map(
+                function(x){return x.split(/=(.+)/)}).reduce(
+                function(acc, v){
+                    acc[v[0].trim()] = v[1]; return acc
+                }, 
+            {}
+        ), null, 4)
+    }
 
 function getBody(str){
     let bodyRegex = /--data(-binary|-raw|-urlencode)? '(.+?)'/
