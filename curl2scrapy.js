@@ -20,9 +20,9 @@ function extractHeader(str){
 // Removing extra flags
 function cleanFlags(str){
     let flags = ["-L", "--location", "--request"]
-    let regexString = "(" + flags.join("|") + ")\\s*"
+    let regexString = "\\s(" + flags.join("|") + ")\\s*"
     let regex = new RegExp(regexString, "g")
-    return str.replace(regex, '')
+    return str.replaceAll(regex, '')
 }
 
 // Create headers object and stringify it.
