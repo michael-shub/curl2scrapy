@@ -1,7 +1,26 @@
-var curlField = $('#curl');
-var scrapyField = $('#scrapy');
-var btn = $('#btn');
+const curlField = $('#curl');
+const scrapyField = $('#scrapy');
+const format = $("#format");
+const btn = $('#btn');
 
+
+function normaliseNewlines(multilineCurl) {
+    return multilineCurl.replace(" \\\n", " ");
+}
+const curlParser = new ArgumentParser({
+    description: 'Basic arg parser for curl command'
+});
+curlParser.add_argument('command')
+curlParser.add_argument('url')
+curlParser.add_argument('-d', '--data')
+curlParser.add_argument('-b', '--data-binary', '--data-raw', { default: null })
+curlParser.add_argument('-X', { default: '' })
+curlParser.add_argument('-H', '--header', { action: 'append', default: [] })
+curlParser.add_argument('--compressed', { action: 'store_true' })
+curlParser.add_argument('-k','--insecure', { action: 'store_true' })
+curlParser.add_argument('--user', '-u', { default: [] })
+curlParser.add_argument('-i','--include', { action: 'store_true' })
+curlParser.add_argument('-s','--silent', { action: 'store_true' })
 
 function getMethod(str){
     let methodRegex = /-X (\w+)/;
@@ -16,29 +35,6 @@ function getMethod(str){
 function extractHeader(str){
     return str.split(/: (.+)/)
 }
-
-// Removing extra flags
-function cleanFlags(str){
-    let flags = ["-L", "--location", "--request"]
-    let regexString = "\\s(" + flags.join("|") + ")\\s*"
-    let regex = new RegExp(regexString, "g")
-    return str.replaceAll(regex, '')
-}
-
-// Create headers object and stringify it.
-function getHeaders(str){
-    let headersRegex = /(-H|--header) '(.+?)'/g;
-    let matches = [];
-    let match = headersRegex.exec(str);
-    while (match != null) {
-        matches.push(match[2]);
-        match = headersRegex.exec(str)
-    }
-    let headersMatch = matches ? matches : []
-
-    return headersMatch.map(extractHeader).reduce(
-        function(acc, v){acc[v[0].trim()] = v[1]; return acc}, {});
-};
 
 // Extracting URL from curl data.
 function getUrl(text){
@@ -65,21 +61,40 @@ function getBody(str){
     return match ? match[2] : null
 }
 
+function isForm(headers) {
+    let contentType = headers.Content-Type || headers.content-type;
+    if (contentType === 'application/x-www-form-urlencoded') {
+        return true;
+    } return false;
+}
+
 
 function getCurlObject(curlText){
-    curlText = cleanFlags(curlText)
-    let url = getUrl(curlText);
-    let method = getMethod(curlText);
-    let body = getBody(curlText);
-    let headers = getHeaders(curlText);
+    let method = "get";
+    let tokens = shlex.split(normaliseNewlines(curlText));
+    let parsedArgs = curlParser.parse_args(tokens);
+    let postData = parsedArgs.data || parsedArgs.data_binary;
+    if (postData) {
+        method = "post";
+    }
+
+    let headers = parsedArgs.header.map(extractHeader).reduce(
+        function(acc, v){acc[v[0].trim()] = v[1]; return acc}, {});
     let cookies = headers.Cookie || headers.cookie || null;
     delete headers.Cookie;
     delete headers.cookie;
 
+    let isForm = isForm(headers);
+
+    let url = getUrl(curlText);
+    let method = getMethod(curlText);
+    let headers = getHeaders(curlText);
+
     return {
         "url": url,
         "method": method,
-        "body": body,
+        "data": postData,
+        "isForm": isForm,
         "headers": headers,
         "cookies": cookies
     }
@@ -91,39 +106,41 @@ function curl2scrapy(curlText){
     try {
         let curlObject = getCurlObject(curlText);
 
-        let cookieText = getCookies(curlObject.cookies);
+        let cookieText = curlObject.cookies;
         let headersText = $.isEmptyObject(curlObject.headers) ? null : JSON.stringify(curlObject.headers, null, 4);
-
-        let result = `from scrapy import Request\n`
+            
+        let requestType = 'Request';
+        if (curlObject.isForm) {
+            requestType = 'FormRequest';
+        }
+        let result = `from scrapy.http import ${requestType}\n`
                     + `\n`
                     + `url = '[[url]]'\n`
                     + (headersText ? '\nheaders = [[headers]]\n' : '')
                     + (cookieText ? '\ncookies = [[cookies]]\n' : '')
                     + (curlObject.body ? `\nbody = '[[body]]'\n` : '')
-                    + `\nrequest = Request(\n`
+                    + `\nrequest = ${requestType}(\n`
                     + `    url=url,\n`
                     + `    method='[[method]]',\n`
                     + `    dont_filter=True,\n`
                     + (cookieText ? '    cookies=cookies,\n' : '')
                     + (headersText ? '    headers=headers,\n' : '')
                     + (curlObject.body ? '    body=body,\n' : '')
-                    + `)\n\n`
-                    + `fetch(request)`
+                    + `)\n`
 
         result = result.replace('[[url]]', curlObject.url)
         .replace('[[headers]]', headersText)
         .replace('[[cookies]]', cookieText)
         .replace('[[method]]', curlObject.method)
         .replace('[[body]]', curlObject.body)
+
         scrapyField.val(result);
-        }
-    catch (e) {
+    } catch (e) {
         scrapyField.val('Something went wrong...' + '\n' + e);
     }
 };
 
 // Translate on paste function + callback
-// Many thanks to https://stackoverflow.com/questions/2176861/javascript-get-clipboard-data-on-paste-event-cross-browser
 function handlePaste (e) {
     var clipboardData, pastedData;
 
@@ -139,11 +156,21 @@ document.getElementById('curl').addEventListener('paste', handlePaste);
 // // Ctrl-Enter pressed
 curlField.keydown(function(e) {
   if (e.ctrlKey && e.keyCode == 13) {
-    curl2scrapy(curlField.val());
+    curl2scrapy($(this).val());
   }
 });
 
 // Button click
 btn.click(function(e){
     curl2scrapy(curlField.val());
-})
+});
+
+format.change(function() {
+    if ($(this).val() === "parse") {
+        $('#form2 > label[for="scrapy"]').removeAttr("hidden");
+        $("#scrapy").removeAttr("hidden");
+    } else {
+        $('#form2 > label[for="parse"]').removeAttr("hidden");
+        $("#parse").removeAttr("hidden");
+    }
+});
